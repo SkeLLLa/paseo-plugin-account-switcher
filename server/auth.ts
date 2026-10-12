@@ -3,12 +3,13 @@ import { lstat, mkdir, readFile, realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { PaseoApi } from "./paseo-api";
-import type { Provider } from "../shared/contracts";
+import { missingCli, type Provider } from "../shared/contracts";
 import { accountFrom, type AccountStore, type Registry, type StoredAccount } from "./store";
 import { assertManagedCommand, buildAccountEnv, prepareProfile } from "./profiles";
 import { launcherPath, writeLaunchers } from "./integration";
 
 export function accountCommand(registry: Registry, provider: Provider): string[] {
+  if (!registry.available[provider]) throw new Error(missingCli(provider));
   const command = registry.commands[provider];
   if (!command?.length || !command[0]) throw new Error("The provider CLI is not configured. Enable account integration.");
   return [...command];

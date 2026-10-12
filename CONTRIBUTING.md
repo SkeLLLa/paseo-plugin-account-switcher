@@ -15,7 +15,7 @@ npm test
 
 Run the build first on a fresh checkout: it generates `server/launcher-artifact.ts`, which is imported by the server and some tests. Rebuild whenever launcher code or one of its dependencies changes. Do not edit or commit the generated artifact.
 
-Tests use temporary directories, synthetic credentials, and mock or synthetic provider processes. They do not require signing in to a real subscription. Installation and live UI testing additionally need Paseo and both official provider CLIs on the daemon host; see [installation](docs/installation.md).
+Tests use temporary directories, synthetic credentials, and mock or synthetic provider processes. They do not require signing in to a real subscription. Installation and live UI testing additionally need Paseo and an official provider CLI on the daemon host (both, to exercise both providers); see [installation](docs/installation.md).
 
 The test configuration clears inherited provider authentication variables inside the test processes; fixtures supply their own explicit values. This keeps a developer's shell credentials from changing test outcomes without weakening the production authentication checks.
 

@@ -161,6 +161,19 @@ describe("persistent login isolation", () => {
   });
 });
 
+describe("provider without a CLI", () => {
+  it("refuses new accounts and leaves its accounts out of limits monitoring", async () => {
+    const { controller, account } = await fixture();
+    await controller.store.change(r => { r.commands = { claude: ["fixture-cli"], codex: ["fixture-cli"] }; r.available.codex = false; });
+    await expect(controller.add("codex", "Another")).rejects.toThrow("Codex CLI was not found");
+    expect((await controller.store.read()).accounts.filter(row => row.provider === "codex").map(row => row.id)).toEqual(["system-codex", account.id]);
+    expect((await controller.quotaAccounts()).map(row => row.id)).toEqual(["system-claude"]);
+    await expect(controller.checkAccount(account.id)).rejects.toThrow("Codex CLI was not found");
+    expect(mocks.probeAccount).not.toHaveBeenCalled();
+    expect(accountFrom(await controller.store.read(), account.id).authStatus).toBe("needs_auth");
+  });
+});
+
 describe("account deletion retry", () => {
   it("retains the registry and profile when credential cleanup fails", async () => {
     const { controller, account } = await fixture();
@@ -387,7 +400,7 @@ describe("live integration reconciliation", () => {
     await controller.store.change(r => { r.integration.enabled = true; });
     await controller.store.prepare("drift-agent", "codex", account.id);
     mocks.reconcileIntegration.mockImplementationOnce(async () => {
-      await controller.store.change(r => { r.integration = { enabled: false, error: "Provider ownership changed" }; });
+      await controller.store.change(r => { r.integration = { ...r.integration, enabled: false, error: "Provider ownership changed" }; });
     });
     await expect(controller.switcher(paseo).apply("drift-agent")).rejects.toThrow(/integration/i);
     expect(mocks.probeAccount).not.toHaveBeenCalled();
@@ -403,7 +416,7 @@ describe("live integration reconciliation", () => {
     mocks.reconcileIntegration.mockImplementation(async () => {
       if (!drifted) return;
       await controller.store.change(r => {
-        r.integration = { enabled: false, error: "Provider ownership changed" };
+        r.integration = { ...r.integration, enabled: false, error: "Provider ownership changed" };
         for (const binding of r.bindings) { binding.launchToken = null; binding.currentAccountId = null; binding.status = "error"; }
       });
     });

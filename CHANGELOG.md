@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- Claude Code and Codex are each optional: the plugin needs only one of their CLIs on the
+  daemon. A missing provider is shown as unavailable instead of failing every request, its
+  authentication settings no longer block the other provider, and enabling integration
+  installs launchers only for providers whose CLI was found.
+
 ### Fixed
 
 - Agent account switchers on Paseo 0.11.1: let the host assign subscription IDs,

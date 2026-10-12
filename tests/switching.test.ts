@@ -36,6 +36,17 @@ it("prepares while streaming and reloads only after explicit apply when idle",as
  expect((await f.store.read()).bindings[0].launchToken).toBeNull();
 });
 
+it("does not switch or bind new agents for a provider that integration does not include",async()=>{
+ const f=await fixture();f.setBusy(false);
+ await f.store.change(r=>{r.integration.providers=["claude"];r.defaults.codex=f.target.id;});
+ await f.service.prepare("agent-1",f.target.id);
+ await expect(f.service.apply("agent-1")).rejects.toThrow("Account switching is off for Codex");
+ expect(f.reloads()).toBe(0);
+ expect((await f.store.read()).bindings[0]).toMatchObject({currentAccountId:"system-codex",pendingAccountId:f.target.id,status:"ready",launchToken:null});
+ await f.service.bindNewAgent("new-agent","codex");
+ expect((await f.store.read()).bindings.some(b=>b.agentId==="new-agent")).toBe(false);
+});
+
 function deferred() {
  let resolve!:()=>void;
  const promise=new Promise<void>(done=>{resolve=done;});

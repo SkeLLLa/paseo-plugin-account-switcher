@@ -5,7 +5,7 @@ import { join, dirname, resolve } from "node:path";
 import { lstat, readFile, realpath, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { PaseoApi } from "./paseo-api";
-import { AccountSchema, type LoginSession, type Provider } from "../shared/contracts";
+import { AccountSchema, missingCli, type LoginSession, type Provider } from "../shared/contracts";
 import { AccountStore, accountFrom, type Registry, type StoredAccount } from "./store";
 import { prepareProfile } from "./profiles";
 import { accountCommand, accountEnvironment, launchLogin, probeAccount, removeAccountCredentials } from "./auth";
@@ -109,6 +109,7 @@ export class AccountController {
   if(existing){if(!verifyCredentials)return existing;await existing.catch(()=>{});return this.checkAccount(id,true);}
   const task=(async()=>{
    const state=await this.store.read(), account=accountFrom(state,id);
+   if(!state.available[account.provider])throw new Error(missingCli(account.provider));
    if(account.loginToken)throw new Error("Finish signing in, then click “Check sign-in”.");
    let identity:Awaited<ReturnType<typeof probeAccount>>;
    let stableVersion:string|undefined;
@@ -144,9 +145,9 @@ export class AccountController {
   await this.reconcileLogins();
   const initial=await this.store.read();
   const target=initial.accounts.find(account=>account.id===input.verifyAccountId);
-  if(target&&initial.commands[target.provider]&&!target.loginToken)await this.checkAccount(target.id,true).catch(()=>{this.credentialProofs.delete(target.id);});
+  if(target&&initial.available[target.provider]&&initial.commands[target.provider]&&!target.loginToken)await this.checkAccount(target.id,true).catch(()=>{this.credentialProofs.delete(target.id);});
   const state=await this.store.read();
-  return state.accounts.filter(a=>state.commands[a.provider]&&!a.loginToken).map(account=>this.toQuotaAccount(account,state));
+  return state.accounts.filter(a=>state.available[a.provider]&&state.commands[a.provider]&&!a.loginToken).map(account=>this.toQuotaAccount(account,state));
  }
  private toQuotaAccount(account:StoredAccount,state:Registry):QuotaAccount {
    const env=accountEnvironment(account,state);
@@ -159,6 +160,7 @@ export class AccountController {
  }
  async add(provider:Provider,label:string) {
   await this.ready;
+  if(!(await this.store.read()).available[provider])throw new Error(missingCli(provider));
   const account=await this.store.add(provider,label);
   try{const state=await this.store.read();await prepareProfile({provider,home:account.home,sourceHome:state.sourceHomes[provider],sourceEnvironment:state.sourceEnvironment[provider]});return AccountSchema.parse(account);}
   catch(error){await this.store.remove(account.id,async()=>{await rm(dirname(account.home),{recursive:true,force:true});});throw error;}

@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export const ProviderSchema = z.enum(["claude", "codex"]);
 export type Provider = z.infer<typeof ProviderSchema>;
+export const cliName: Record<Provider, string> = { claude: "Claude Code", codex: "Codex" };
+export const missingCli = (provider: Provider): string => `${cliName[provider]} CLI was not found on the daemon. Install it or configure its command in Paseo, then reload the plugin.`;
 export const LoginModeSchema = z.enum(["device", "browser"]);
 export const LoginSessionSchema = z.object({
   id: z.string(), accountId: z.string(), provider: ProviderSchema, mode: LoginModeSchema,
@@ -25,10 +27,14 @@ export const BindingSchema = z.object({
   status: z.enum(["ready", "switching", "error"]), error: z.string().nullable(),
 });
 export type Binding = z.infer<typeof BindingSchema>;
+// `available`: the daemon found the provider CLI. `integrated`: its launches go through the account launcher.
+export const ProviderStatusSchema = z.object({ available: z.boolean(), integrated: z.boolean() });
+export type ProviderStatus = z.infer<typeof ProviderStatusSchema>;
 export const StateSchema = z.object({
   accounts: z.array(AccountSchema), bindings: z.array(BindingSchema),
   defaults: z.object({ claude: z.string().nullable(), codex: z.string().nullable() }),
   integration: z.object({ enabled: z.boolean(), error: z.string().nullable() }),
+  providers: z.object({ claude: ProviderStatusSchema, codex: ProviderStatusSchema }),
 });
 export type AccountState = z.infer<typeof StateSchema>;
 export const UsageWindowSchema = z.object({

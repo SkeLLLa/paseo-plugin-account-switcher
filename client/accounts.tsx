@@ -1,7 +1,7 @@
 import { useRpc, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { addAccount, cancelLogin, checkLogin, refreshUsage, removeAccount, renameAccount, setDefaultAccount, setIntegration, startLogin,
+import { addAccount, cancelLogin, checkLogin, cliName, missingCli, refreshUsage, removeAccount, renameAccount, setDefaultAccount, setIntegration, startLogin,
   type Account, type AccountState, type LoginSession, type Provider, type UsageSnapshot } from "../shared/contracts";
 import { body, Button, Field, heading, IconButton, InlineAction, muted, Notice, QuotaSummary, row, Segmented, StatusDot, toneColor } from "./components";
 import { useAccountsData, useAction, useNow } from "./data";
@@ -15,6 +15,12 @@ type SignInActions = { onStarted(account: Account, session: LoginSession): void;
 
 const loginModes = [{ value: "device", label: "Device code" }, { value: "browser", label: "In browser" }] as const;
 const providers = [{ value: "claude", label: providerName.claude }, { value: "codex", label: providerName.codex }] as const;
+type ProviderOption = (typeof providers)[number];
+
+// A system account stands for a CLI the daemon does not have. Managed sign-ins stay listed so they can be removed.
+function listed(account: Account, state: AccountState): boolean {
+  return state.providers[account.provider].available || account.source === "managed";
+}
 
 function AccountCard({ account, state, snapshot, now, theme, layout, host, onChanged, onStarted, onResume }: AccountsProps & SignInActions & {
   account: Account; state: AccountState; snapshot: UsageSnapshot | undefined; now: number;
@@ -109,7 +115,7 @@ function AccountCard({ account, state, snapshot, now, theme, layout, host, onCha
   </View>;
 }
 
-function AddAccountForm({ theme, host, onChanged, initialProvider, onClose, onStarted }: AccountsProps & Pick<SignInActions, "onStarted"> & { initialProvider: Provider; onClose(): void }) {
+function AddAccountForm({ theme, host, onChanged, initialProvider, options, onClose, onStarted }: AccountsProps & Pick<SignInActions, "onStarted"> & { initialProvider: Provider; options: readonly ProviderOption[]; onClose(): void }) {
   const add = useRpc(addAccount);
   const login = useRpc(startLogin);
   const action = useAction(host.id, onChanged);
@@ -128,7 +134,7 @@ function AddAccountForm({ theme, host, onChanged, initialProvider, onClose, onSt
   });
   return <View style={{ gap: 10, padding: 12, backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 10 }}>
     <View style={row}>
-      <Segmented<Provider> theme={theme} label="Provider" value={provider} options={providers} onChange={setProvider} disabled={busy || Boolean(created)} />
+      <Segmented<Provider> theme={theme} label="Provider" value={provider} options={options} onChange={setProvider} disabled={busy || Boolean(created)} />
       {provider === "codex" ? <Segmented<LoginMode> theme={theme} label="ChatGPT sign-in method" value={mode} options={loginModes} onChange={setMode} disabled={busy} /> : null}
     </View>
     <View style={row}>
@@ -156,18 +162,20 @@ export function AccountsSurface(props: AccountsProps) {
   const onResume = (account: Account, sessionId: string) => setSignIn({ account, hostId: host.id, sessionId, autoOpen: false });
   const state = accounts.data;
   const enabled = state?.integration.enabled ?? false;
+  const installed = providers.filter((option) => state?.providers[option.value].available ?? true);
   const toggleIntegration = () => action.run(() => integration({ enabled: !enabled }));
+  const enableIntegration = () => action.run(() => integration({ enabled: true }));
   return <><ScrollView style={{ flex: 1, backgroundColor: theme.colors.surface0 }} contentContainerStyle={{ padding: layout.compact ? 12 : 20, gap: 12, width: "100%", maxWidth: 960, alignSelf: "center", paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         <Text style={{ color: theme.colors.foreground, fontSize: layout.compact ? 20 : 22, fontWeight: "700" }}>Accounts</Text>
         {state ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <Text style={muted(theme)}>Accounts: {state.accounts.length} · switching {enabled ? "on" : "off"}</Text>
+          <Text style={muted(theme)}>Accounts: {state.accounts.filter((account) => listed(account, state)).length} · switching {enabled ? "on" : "off"}</Text>
           {enabled ? <InlineAction theme={theme} disabled={action.isPending} onPress={toggleIntegration}>Disable</InlineAction> : null}
         </View> : <Text style={muted(theme)}>{accounts.isPending ? "Loading…" : "Data unavailable"}</Text>}
       </View>
       <IconButton theme={theme} icon="RefreshCw" label="Refresh all limits" disabled={action.isPending} onPress={() => action.run(() => refresh({}))} />
-      <Button theme={theme} variant="primary" disabled={action.isPending} onPress={() => setAdding(adding ? null : "claude")}>{adding ? "Close" : "Add"}</Button>
+      <Button theme={theme} variant="primary" disabled={action.isPending || (!adding && !installed.length)} onPress={() => setAdding(adding ? null : installed[0]?.value ?? null)}>{adding ? "Close" : "Add"}</Button>
     </View>
     {state && !enabled ? <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <View style={{ flex: 1, minWidth: 200 }}><Notice theme={theme} tone="warning">Account switching in the composer is off: agents use the system CLI.</Notice></View>
@@ -178,16 +186,22 @@ export function AccountsSurface(props: AccountsProps) {
     {action.error ? <Notice theme={theme} tone="danger">{errorMessage(action.error)}</Notice> : null}
     {accounts.error ? <Notice theme={theme} tone="danger">Could not refresh accounts: {errorMessage(accounts.error)}</Notice> : null}
     {usage.error ? <Notice theme={theme} tone="danger">Could not refresh limits: {errorMessage(usage.error)}</Notice> : null}
-    {adding ? <AddAccountForm key={adding} {...props} initialProvider={adding} onStarted={onStarted} onClose={() => setAdding(null)} /> : null}
+    {adding ? <AddAccountForm key={adding} {...props} initialProvider={adding} options={installed} onStarted={onStarted} onClose={() => setAdding(null)} /> : null}
     {state ? (["claude", "codex"] as const).map((provider) => {
-      const group = state.accounts.filter((account) => account.provider === provider);
+      const status = state.providers[provider];
+      const group = state.accounts.filter((account) => account.provider === provider && listed(account, state));
       return <View key={provider} style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, paddingTop: 4 }}>
           <Text accessibilityRole="header" style={heading(theme)}>{providerName[provider]}</Text>
           <Text style={muted(theme)}>{group.length}</Text>
         </View>
+        {!status.available ? <Notice theme={theme}>{missingCli(provider)}</Notice>
+          : enabled && !status.integrated ? <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <View style={{ flex: 1, minWidth: 200 }}><Notice theme={theme} tone="warning">Account switching is off for {cliName[provider]}: its agents use the system CLI.</Notice></View>
+            <Button theme={theme} disabled={action.isPending} onPress={enableIntegration}>Enable</Button>
+          </View> : null}
         {group.map((account) => <AccountCard key={account.id} {...props} account={account} state={state} snapshot={usage.data?.accounts.find((item) => item.accountId === account.id)} now={now} onStarted={onStarted} onResume={onResume} />)}
-        {!group.length ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        {!group.length && status.available ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={muted(theme)}>No accounts.</Text>
           <InlineAction theme={theme} onPress={() => setAdding(provider)}>Add</InlineAction>
         </View> : null}
