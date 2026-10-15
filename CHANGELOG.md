@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 - 2026-10-15
 
 The first npm release since 0.2.0, so it also ships the changes listed under 0.3.0.
 
