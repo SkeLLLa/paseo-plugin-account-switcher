@@ -111,8 +111,8 @@ const commands = {
     checkChangelog(read("CHANGELOG.md"), packageJson().version);
   },
   prepare(spec) {
-    // The printed `git commit -am` would also take unrelated edits.
-    if (git("status", "--porcelain")) throw new Error("Commit or stash local changes before preparing a release.");
+    // The printed `git commit -am` would also take unrelated edits to tracked files.
+    if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("Commit or stash local changes before preparing a release.");
     if (git("rev-parse", "--abbrev-ref", "HEAD") !== "main") throw new Error("Prepare releases on main.");
     const version = nextVersion(packageJson().version, spec);
     // Validate the changelog before touching any file, so a failure leaves nothing half-done.
