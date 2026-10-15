@@ -25,7 +25,7 @@ if (args.includes('status')) {
  if(args.includes('auth')) console.log(JSON.stringify({loggedIn:true,authMethod:'claude.ai',email:'person@example.test',orgId:'org',subscriptionType:'max'}));
  else console.error('Logged in using ChatGPT');
 } else if(args.includes('--wait')) {
- console.log('ready'); process.on('SIGTERM',()=>{console.log('terminated');process.exit(23)}); setInterval(()=>{},1000);
+ process.on('SIGTERM',()=>{console.log('terminated');process.exit(23)}); console.log('ready'); setInterval(()=>{},1000);
 } else {
  console.log(JSON.stringify({args,home:process.env.CODEX_HOME,claudeHome:process.env.CLAUDE_CONFIG_DIR,key:process.env.OPENAI_API_KEY,custom:process.env.CUSTOM}));
  process.stdin.pipe(process.stdout);
