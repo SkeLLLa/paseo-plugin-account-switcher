@@ -25,17 +25,28 @@ Run a focused test while developing:
 npm test -- tests/switching.test.ts
 ```
 
-Before submitting, run the build, typecheck, and full test suite above.
+Before submitting, run `npm run check`, which runs the build, typecheck, and full test suite in that order.
 
-`npm run check` runs those three checks in that order.
+## Changelog and releases
 
-## Release to npm
+Versions follow [semantic versioning](https://semver.org). A pull request with a user-visible change adds an entry under `## Unreleased` at the top of `CHANGELOG.md`, in the `Added`, `Changed`, `Fixed`, or `Removed` group. The release notes are that section, so write entries for people who run the plugin.
 
-Paseo 0.9 and newer install the plugin from npm, and Paseo Cafe requires the npm version to equal `package.json.version` on the default branch.
+To cut a release from an up-to-date `main`:
 
-1. Bump `version` with `npm version <x.y.z> --no-git-tag-version` and update `CHANGELOG.md`.
-2. Run `npm run check`, then `npm pack --dry-run` and review the file list.
-3. Merge to `main`, then run `npm publish` from that commit.
+```sh
+node scripts/release.mjs prepare minor   # or patch, major, premajor, preminor, prepatch, prerelease (beta id), or 1.2.3-beta.1
+npm run check
+```
+
+`prepare` dates the Unreleased section, sets the version in `package.json` and `package-lock.json`, and prints the commit, push, and tag commands. Pushing the `v` tag starts the [Release workflow](.github/workflows/release.yml). It stops if the tag is not on `main`, does not match `package.json`, has no dated changelog section, or names a version older than the newest on npm. It then packs and checks the tarball, runs the test matrix, publishes that tarball to npm with provenance, and creates the GitHub release from the changelog section. Prereleases go to the `next` dist-tag and are marked as prereleases on GitHub.
+
+Versions only move forward: the workflow refuses a version below the newest one on npm, prereleases included, so a fix for an older line ships as the next version.
+
+If a run fails for a reason outside the tagged commit, such as npm settings or a flaky runner, fix it and run the workflow again from the same tag, with **Run workflow → Use workflow from → Tags** or `gh workflow run release.yml --ref vX.Y.Z`. A run started from a branch stops at once. A fix to the code needs a new version. A version already on npm is not published again, and the run only completes the GitHub release; npm can take a few minutes to list a new version, so wait before retrying right after a publish.
+
+The plugin directory on paseo.sh pins an npm version. A new npm release produces a bump pull request in [getpaseo/plugins](https://github.com/getpaseo/plugins), and the listing changes once a reviewer approves it. The listing text comes from `OVERVIEW.md` in the package; update it when setup or behavior changes, and keep install commands out of it: the directory rejects them, and so does `scripts/check-package.mjs`. Paseo Cafe expects the npm version to match `package.json` on `main`, so push the tag right after the release commit.
+
+Publishing uses npm trusted publishing, so the repository stores no npm token. The package's trusted publisher on npmjs.com names repository `dutchakdev/paseo-plugin-account-switcher`, workflow `release.yml`, and environment `npm`. Keep that environment limited to `v*` tags in the repository settings, since npm does not check which ref a run started from.
 
 `npm pack` and `npm publish` run `prepack`, which builds the launcher and temporarily removes the Git-only `build` commands from `paseo-plugin.json`; `postpack` restores the file. Paseo runs manifest build commands for npm installs too, but without development dependencies or a lockfile, so the published manifest must not carry them. If packing is interrupted, run `node scripts/pack-manifest.mjs restore`.
 

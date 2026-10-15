@@ -14,20 +14,49 @@ Existing CLI subscription sign-ins appear as **Current CLI** accounts. You can a
 
 Enable **Settings → Plugins → Enable plugins** on the target host. Paseo plugins are trusted, unsandboxed code. Installing this plugin and its dependencies grants them the daemon user's access, including files, processes, credentials, and network services.
 
-## Install a local checkout
+## Plugin directory installations
 
-Place the repository on the daemon machine. From that checkout:
+On Paseo 0.11.0 or a later 0.11 release, install the reviewed version listed on [paseo.sh](https://paseo.sh/plugins/dutchakdev/account-switcher):
+
+```sh
+paseo plugin add dutchakdev/account-switcher --host 127.0.0.1:6767
+```
+
+The directory pins an npm version once a reviewer approves it, so a release reaches the directory after it reaches npm. `paseo plugin update account-switcher` moves to the newest approved version.
+
+## npm installations
+
+On Paseo 0.9 and newer, including the 0.11.0 betas, install the published package:
+
+```sh
+paseo plugin install npm:paseo-plugin-account-switcher --host 127.0.0.1:6767
+```
+
+Paseo installs the package and its one runtime dependency without lifecycle scripts or development dependencies. The package already contains the generated launcher, and its manifest has no preparation steps, so nothing is built on the daemon host. `paseo plugin update account-switcher` moves to the newest published version.
+
+## Git installations
+
+`paseo plugin install` also accepts a Git source; use one you trust. From Paseo 0.11.0, a bare `owner/name` names a plugin directory entry, so prefix the repository with `git:`, as in `git:dutchakdev/paseo-plugin-account-switcher`. Earlier versions, including the 0.11.0 betas, read `dutchakdev/paseo-plugin-account-switcher` as a GitHub repository. The manifest declares the required preparation steps:
 
 ```sh
 npm ci --ignore-scripts --legacy-peer-deps
 npm run build
-npm run typecheck
-npm test
+```
+
+Paseo runs these on the daemon host before activating a Git installation or update. A preparation failure leaves the installed version intact. On Paseo 0.9, a normal Git update follows the repository's default branch, even when the initial installation used a tag or commit. See the [Paseo CLI reference](https://paseo.sh/docs/plugins/reference#cli-reference) for source and revision syntax.
+
+## Install a local checkout
+
+Clone the repository onto the daemon machine. From that checkout:
+
+```sh
+npm ci --ignore-scripts --legacy-peer-deps
+npm run check
 paseo plugin install "$PWD" --host 127.0.0.1:6767
 paseo plugin ls account-switcher --host 127.0.0.1:6767
 ```
 
-The build generates the native-provider launcher; it must run before typechecking or testing a fresh checkout. Paseo compiles the plugin's client and server entries when loading it.
+`npm run check` builds the native-provider launcher, then typechecks and tests; the build must come first on a fresh checkout. Paseo compiles the plugin's client and server entries when loading it.
 
 Require **running** in the plugin list, then open **Accounts** on that host. Select **Enable** in Accounts to activate switching. This is separate from the daemon-wide plugin switch: it saves the original Claude and Codex commands and replaces them with account-aware launchers. It does not restart existing chats.
 
@@ -47,45 +76,22 @@ paseo plugin ls account-switcher --host ssh://user@host
 
 Use the same `--host` value for subsequent management commands. If Accounts is available on several connected hosts, use its host picker to choose the intended daemon. Accounts, defaults, sign-ins, and limits belong to that host.
 
-For remote sign-in, use **Device code** for Codex. Codex's **Browser** mode needs a browser on the daemon computer because its callback uses localhost. Claude's manual authorization-code flow can be completed from another device.
-
-## npm installations
-
-On Paseo 0.9 and newer, install the published package:
-
-```sh
-paseo plugin install npm:paseo-plugin-account-switcher --host 127.0.0.1:6767
-```
-
-Paseo installs the package and its one runtime dependency without lifecycle scripts or development dependencies. The package already contains the generated launcher, and its manifest has no preparation steps, so nothing is built on the daemon host. `paseo plugin update account-switcher` moves to the next published version.
-
-## Git installations
-
-Paseo also accepts a Git source through `paseo plugin add`. Supply the actual repository source you intend to trust. The manifest declares the required preparation steps:
-
-```sh
-npm ci --ignore-scripts --legacy-peer-deps
-npm run build
-```
-
-Paseo runs these on the daemon host before activating a Git installation or update. A preparation failure leaves the installed version intact. On Paseo 0.9, a normal Git update follows the repository's default branch, even when the initial installation used a tag or commit. See the [Paseo CLI reference](https://paseo.sh/docs/plugins/reference#cli-reference) for source and revision syntax.
+For remote sign-in, use **Device code** for Codex. Codex's **In browser** mode needs a browser on the daemon computer because its callback uses localhost. Claude's manual authorization-code flow can be completed from another device.
 
 ## Update
 
 Finish or cancel active sign-ins first: reloading the plugin stops its background sign-in processes.
 
-For a **directory installation**, update the existing checkout, then run:
+For a **local checkout**, update it, then run:
 
 ```sh
 npm ci --ignore-scripts --legacy-peer-deps
-npm run build
-npm run typecheck
-npm test
+npm run check
 paseo plugin reload account-switcher --host 127.0.0.1:6767
 paseo plugin ls account-switcher --host 127.0.0.1:6767
 ```
 
-For a **Git installation**, ask Paseo to fetch and prepare the configured source:
+For a **plugin directory, npm, or Git installation**, run `paseo plugin update`. Paseo shows the new revision and asks for approval; a Git update also runs the manifest's preparation steps:
 
 ```sh
 paseo plugin update account-switcher --host 127.0.0.1:6767
@@ -113,7 +119,7 @@ Integration restoration preserves other provider settings. If no explicit comman
 
 Disabling integration leaves running chats alone; their next reload uses the system CLI. The switcher can show **Account not confirmed** until a subsequent startup is confirmed.
 
-Removal preserves a directory source, but removes Paseo's managed checkout for a Git source. In either case, Account Switcher's separate data directory remains. To remove a managed profile and its credentials, delete it through Accounts **before** removing the plugin. Shared provider history is retained. See [stored data](architecture.md#stored-data) for the paths and deletion boundary.
+Removal leaves a local checkout in place but deletes Paseo's managed copy of a plugin directory, npm, or Git installation. In every case, Account Switcher's separate data directory remains. To delete a managed profile and its credentials, remove the account in Accounts **before** removing the plugin. Shared provider history is retained. See [stored data](architecture.md#stored-data) for the paths and deletion boundary.
 
 To resume after disabling, enable the plugin, confirm it is running, then select **Enable** in Accounts:
 
@@ -131,13 +137,13 @@ paseo plugin enable account-switcher --host 127.0.0.1:6767
 | Authentication override error | Check provider settings, CLI arguments, and the daemon environment for API keys, custom endpoints, or alternate providers. Use subscription authentication for this plugin. Do not paste secret values into a report. |
 | Provider commands changed | Something else replaced a launcher. Review that configuration change, then explicitly select **Enable** again if you want Account Switcher to own provider launches. |
 | Sign-in link does not open | In the desktop app, use **Copy link** and your usual browser. Elsewhere, use **Open browser** or **Copy link**. **Show sign-in link** provides selectable text when clipboard access fails. |
-| Codex browser sign-in stalls remotely | Cancel and choose **Device code**, or finish Browser sign-in on the daemon computer. |
-| Device sign-in is unavailable | Check the provider's device-code sign-in setting and CLI support, or use Browser sign-in on the daemon computer. |
+| Codex browser sign-in stalls remotely | Cancel and choose **Device code**, or finish **In browser** sign-in on the daemon computer. |
+| Device sign-in is unavailable | Check the provider's device-code sign-in setting and CLI support, or use **In browser** sign-in on the daemon computer. |
 | Sign-in status temporarily fails | The dialog retries status automatically. Use **Retry status** to retry immediately. If a stopped or interrupted attempt remains reserved, use **Cancel sign-in** before starting again. |
 | Apply is disabled | Wait for the response and any permission request to finish; verify the selected account is signed in and has no active sign-in. |
 | Account not confirmed | Select the intended account and apply it again while idle. Check the native agent status if reload still fails. |
 | Limits are stale or unavailable | Read the account error, freshness, and retry time. **Refresh** respects backoff; expired authentication needs sign-in. Unreported values are not inferred. |
-| Delete is blocked | Clear the account's default and pending selections, and switch all bound agents away. Archived agents also retain bindings. |
+| Remove is blocked | Clear the account's default and pending selections, and switch all bound agents away. Archived agents also retain bindings. |
 
 For loading failures:
 
