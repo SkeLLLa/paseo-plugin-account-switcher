@@ -2,7 +2,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
-import { AccountSchema, BindingSchema, type Provider, type AccountState } from "../shared/contracts";
+import { AccountSchema, BindingSchema, ProviderSchema, type Provider, type AccountState } from "../shared/contracts";
 import { atomicWrite, isMissing } from "./files";
 
 export const StoredAccountSchema = AccountSchema.extend({ home: z.string(), identityKey: z.string().nullable(), generation: z.number().int(), loginToken:z.string().nullable().default(null) });
@@ -16,7 +16,10 @@ export const RegistrySchema = z.object({
  sourceHomes: z.object({claude:z.string(),codex:z.string()}),
  sourceEnvironment: z.object({claude:z.object({CLAUDE_CONFIG_DIR:z.string().optional(),CLAUDE_SECURESTORAGE_CONFIG_DIR:z.string().optional()}),codex:z.object({CODEX_HOME:z.string().optional()})}).default({claude:{},codex:{}}),
  commands: CommandsSchema, originalCommands: CommandsSchema,
- integration: z.object({enabled:z.boolean(),error:z.string().nullable()}),
+ // Whether discovery found each provider CLI. Registries written before this field assumed both.
+ available: z.object({claude:z.boolean(),codex:z.boolean()}).default({claude:true,codex:true}),
+ // Providers whose Paseo commands the plugin owns while integration is enabled.
+ integration: z.object({enabled:z.boolean(),error:z.string().nullable(),providers:z.array(ProviderSchema).default(["claude","codex"])}),
 });
 export type Registry = z.infer<typeof RegistrySchema>;
 export async function readRegistry(root: string): Promise<Registry> {
@@ -57,7 +60,8 @@ export class AccountStore {
  }
  async snapshot():Promise<AccountState> {
    const state=await this.read();
-   return { accounts:state.accounts.map(a=>AccountSchema.parse(a)),bindings:state.bindings.map(b=>BindingSchema.parse(b)),defaults:state.defaults,integration:state.integration };
+   const status=(provider:Provider)=>({available:state.available[provider],integrated:state.integration.enabled&&state.integration.providers.includes(provider)});
+   return { accounts:state.accounts.map(a=>AccountSchema.parse(a)),bindings:state.bindings.map(b=>BindingSchema.parse(b)),defaults:state.defaults,integration:{enabled:state.integration.enabled,error:state.integration.error},providers:{claude:status("claude"),codex:status("codex")} };
  }
  async add(provider:Provider,label:string):Promise<StoredAccount> {
    return this.change(state=>{const account:StoredAccount={id:randomUUID(),provider,label:label.trim(),source:"managed",home:"",email:null,plan:null,authStatus:"needs_auth",createdAt:new Date().toISOString(),identityKey:null,generation:0,loginToken:null};account.home=join(this.root,"accounts",account.id,provider);state.accounts.push(account);return account;});

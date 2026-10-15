@@ -8,7 +8,7 @@ Account Switcher runs on the machine hosting your Paseo daemon. Its UI appears i
 
 Use a macOS or Linux daemon, Paseo **0.8.x, 0.9.x, 0.10.x, or 0.11.x** on both daemon and client, and Node.js **22.12.0 or newer**. Beta releases are included: Paseo also checks a prerelease against its stable core version, so `0.11.0-beta.3` satisfies the manifest's `0.11.*` range. See [Paseo's compatibility rules](https://paseo.sh/docs/plugins/reference#requirements).
 
-Install the official `claude`, `codex`, and `paseo` CLIs for the daemon's operating-system user. Both provider CLIs must be discoverable through the daemon's PATH or their configured Paseo provider commands.
+Install the official `paseo` CLI and at least one of `claude` or `codex` for the daemon's operating-system user. Each provider CLI you want to use must be discoverable through the daemon's PATH or its configured Paseo provider command. A provider whose CLI is missing gets no launcher: Accounts says so and hides its **Current CLI** account. After installing it, reload the plugin, then select **Enable** in that provider's section if switching is already on for the other.
 
 Existing CLI subscription sign-ins appear as **Current CLI** accounts. You can add isolated accounts through Paseo after installation. API keys, alternate API providers, and conflicting authentication or endpoint overrides are unsupported; the plugin reports them instead of assuming which account they represent.
 
@@ -126,7 +126,8 @@ paseo plugin enable account-switcher --host 127.0.0.1:6767
 | Symptom | What to check |
 | --- | --- |
 | Accounts is missing | Confirm the selected host, Paseo 0.8.x, 0.9.x, 0.10.x, or 0.11.x (including beta releases) on the app and daemon, the global plugin switch, and `running` status. |
-| Provider CLI not found | Check both CLI installations and the daemon user's PATH or configured provider commands. A terminal shell's PATH can differ from a background daemon's. |
+| Provider CLI not found | Neither CLI was found. Check the installations and the daemon user's PATH or configured provider commands. A terminal shell's PATH can differ from a background daemon's. |
+| A provider says its CLI was not found | That provider is skipped; the other keeps working. Install its CLI or configure its command, reload the plugin, then select **Enable** in its section. |
 | Authentication override error | Check provider settings, CLI arguments, and the daemon environment for API keys, custom endpoints, or alternate providers. Use subscription authentication for this plugin. Do not paste secret values into a report. |
 | Provider commands changed | Something else replaced a launcher. Review that configuration change, then explicitly select **Enable** again if you want Account Switcher to own provider launches. |
 | Sign-in link does not open | In the desktop app, use **Copy link** and your usual browser. Elsewhere, use **Open browser** or **Copy link**. **Show sign-in link** provides selectable text when clipboard access fails. |

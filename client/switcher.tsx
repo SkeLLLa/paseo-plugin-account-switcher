@@ -2,7 +2,7 @@ import { useAgent, usePaseo, useRpc, type PluginHostProps } from "@getpaseo/plug
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
-import { applySwitch, prepareSwitch, refreshUsage } from "../shared/contracts";
+import { applySwitch, cliName, missingCli, prepareSwitch, refreshUsage } from "../shared/contracts";
 import { body, Button, heading, InlineAction, muted, Notice, QuotaSummary, row, StatusDot, tabular } from "./components";
 import { useAccountsData, useAction, useNow } from "./data";
 import { currentAccount, currentAccountName, errorMessage, idleForSwitch, providerName, supportedProvider, usageSummary } from "./format";
@@ -35,7 +35,13 @@ export function AgentSwitcher({ theme, host, agentId, onChanged, openAccounts, c
   const unconfirmed = Boolean(binding && binding.currentAccountId === null);
   const pending = state?.accounts.find((account) => account.id === binding?.pendingAccountId);
   const snapshot = usage.data?.accounts.find((item) => item.accountId === current?.id);
-  const enabled = state?.integration.enabled ?? false;
+  // Switching needs the provider CLI and its launcher; integration can cover one provider only.
+  const status = state && provider ? state.providers[provider] : undefined;
+  const enabled = Boolean(status?.available && status.integrated);
+  const off = !state || !provider || enabled ? null
+    : !state.providers[provider].available ? missingCli(provider)
+    : state.integration.enabled ? `Account switching is off for ${cliName[provider]}. Enable it in Accounts.`
+    : "Account switching is disabled in Accounts.";
   const idle = !live.error && idleForSwitch(live.data) && selected?.status === "idle" && selected.attentionReason !== "permission";
   const switching = binding?.status === "switching";
   const disabled = action.isPending || switching || !enabled;
@@ -57,8 +63,8 @@ export function AgentSwitcher({ theme, host, agentId, onChanged, openAccounts, c
     {usage.error ? <Notice theme={theme} tone="danger">{errorMessage(usage.error)}</Notice> : null}
     {live.error ? <Notice theme={theme} tone="danger">Agent status unconfirmed: {errorMessage(live.error)}</Notice> : null}
     {!provider && !live.isPending ? <Notice theme={theme}>Account switching is available for Claude and Codex only.</Notice> : null}
-    {state && !enabled ? <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <View style={{ flex: 1, minWidth: 0 }}><Notice theme={theme} tone="warning">Account switching is disabled in Accounts.</Notice></View>
+    {off ? <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flex: 1, minWidth: 0 }}><Notice theme={theme} tone="warning">{off}</Notice></View>
       <InlineAction theme={theme} onPress={leave}>Open</InlineAction>
     </View> : null}
     {unconfirmed

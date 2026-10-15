@@ -14,7 +14,7 @@ Use multiple Claude and ChatGPT/Codex subscription accounts in Paseo. Choose an 
 
 - **Paseo 0.8.x, 0.9.x, 0.10.x, or 0.11.x**, including beta releases, on a **macOS or Linux** daemon and on the connected client.
 - **Node.js 22.12.0 or newer**, with npm.
-- Official **Claude Code**, **Codex**, and **Paseo** CLIs available to the daemon. Both provider CLIs must be installed, even if you initially use only one.
+- The official **Paseo** CLI and at least one of **Claude Code** or **Codex** available to the daemon. A provider whose CLI is missing is skipped until you install it.
 - Claude or ChatGPT subscription authentication. API keys and custom authentication/provider overrides are unsupported.
 
 The interface is in English. Reset dates use the viewing device's local time zone. See [installation](docs/installation.md) for remote hosts and [verification](docs/verification.md) for the scope of recorded testing.

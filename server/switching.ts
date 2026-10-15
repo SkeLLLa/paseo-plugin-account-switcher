@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { BindingSchema, type Binding, type Provider } from "../shared/contracts";
+import { BindingSchema, cliName, type Binding, type Provider } from "../shared/contracts";
 import { AccountStore, accountFrom, type StoredBinding } from "./store";
 
 export interface SwitchDependencies {
@@ -44,6 +44,8 @@ export class SwitchService {
      const selected=state.bindings.find(b=>b.agentId===agentId);
      if(!selected?.pendingAccountId)throw new Error("Select an account first.");
      const target=accountFrom(state,selected.pendingAccountId);
+     // Without the launcher in its command, the provider would never confirm the new account.
+     if(!state.integration.providers.includes(target.provider))throw new Error(`Account switching is off for ${cliName[target.provider]}. Enable integration again to include it.`);
      if(target.loginToken)throw new Error("Finish signing in to the selected account first.");
      const assertIdle=async()=>{const agent=await this.deps.inspect(agentId);if(agent.archived)throw new Error("The agent is archived.");if(agent.provider!==target.provider)throw new Error("The agent provider changed.");if(agent.busy)throw new Error("Wait for the agent to finish its response.");};
      await assertIdle();
@@ -73,14 +75,14 @@ export class SwitchService {
  }
  async bindNewAgent(agentId:string,provider:Provider):Promise<void>{
    const state=await this.deps.store.read();
-   if(!state.integration.enabled||state.bindings.some(b=>b.agentId===agentId))return;
+   if(!state.integration.enabled||!state.integration.providers.includes(provider)||state.bindings.some(b=>b.agentId===agentId))return;
    const selected=state.defaults[provider];if(!selected)return;
    const account=accountFrom(state,selected);
    if(account.provider!==provider)throw new Error("The default account belongs to another provider.");
    if(account.loginToken)throw new Error("Default account sign-in is still in progress.");
    if((await this.deps.checkAccount(selected)).authStatus!=="ready")throw new Error("The default account requires authentication. Sign in or select another default account.");
    await this.deps.store.change(r=>{
-     if(!r.integration.enabled||r.bindings.some(b=>b.agentId===agentId))return;
+     if(!r.integration.enabled||!r.integration.providers.includes(provider)||r.bindings.some(b=>b.agentId===agentId))return;
      const accountId=r.defaults[provider];if(accountId!==selected)throw new Error("The default account changed; create the agent again.");
      if(accountFrom(r,accountId).loginToken)throw new Error("Default account sign-in is still in progress.");
      r.bindings.push({agentId,provider,currentAccountId:null,pendingAccountId:null,launchAccountId:accountId,launchToken:randomUUID(),status:"ready",error:null,registrationObserved:false});
