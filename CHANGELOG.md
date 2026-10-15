@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+The first npm release since 0.2.0, so it also ships the changes listed under 0.3.0.
+
+### Changed
+
+- The npm package includes `OVERVIEW.md`, which the Paseo plugin directory shows on the plugin's page.
+- npm releases are published from GitHub Actions with provenance, so you can trace a package version to the commit and workflow that built it.
+
 ## 0.3.0 - 2026-10-15
 
 ### Changed

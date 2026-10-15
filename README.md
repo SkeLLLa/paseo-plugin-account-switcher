@@ -1,8 +1,12 @@
 # Account Switcher for Paseo
 
-Use multiple Claude and ChatGPT/Codex subscription accounts in Paseo. Choose an account for each agent, switch within an existing chat, and see limits across your saved accounts.
+[![CI](https://github.com/dutchakdev/paseo-plugin-account-switcher/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dutchakdev/paseo-plugin-account-switcher/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/paseo-plugin-account-switcher)](https://www.npmjs.com/package/paseo-plugin-account-switcher)
 
-![Account Switcher in Paseo: Claude and Codex account limits, the in-chat account dialog, and the composer account chip.](docs/assets/account-switcher-overview.png)
+Use several Claude and ChatGPT/Codex subscription accounts in Paseo. Choose an account for each agent, switch the account of an existing chat, and see the limits of every saved account.
+
+Listed in the [Paseo plugin directory](https://paseo.sh/plugins/dutchakdev/account-switcher) and on [paseo.cafe](https://paseo.cafe/plugins/account-switcher/).
+
+![Accounts in Paseo: two Claude accounts with their 5-hour and weekly limits and the start of a Codex account. Personal details are redacted.](docs/assets/accounts.png)
 
 - **Sign in from Paseo.** Add an account, finish the official provider sign-in, and return to your chat.
 - **Switch per agent.** The account chip opens a dialog on desktop or a bottom sheet on mobile. Changes apply only when you choose **Apply**.
@@ -14,42 +18,41 @@ Use multiple Claude and ChatGPT/Codex subscription accounts in Paseo. Choose an 
 
 - **Paseo 0.8.x, 0.9.x, 0.10.x, or 0.11.x**, including beta releases, on a **macOS or Linux** daemon and on the connected client.
 - **Node.js 22.12.0 or newer**, with npm.
-- The official **Paseo** CLI and at least one of **Claude Code** or **Codex** available to the daemon. A provider whose CLI is missing is skipped until you install it.
+- The official **Paseo** CLI and at least one of **Claude Code** or **Codex** available to the daemon. A provider whose CLI is missing is skipped; after installing it, reload the plugin and select **Enable** in its section.
 - Claude or ChatGPT subscription authentication. API keys and custom authentication/provider overrides are unsupported.
 
 The interface is in English. Reset dates use the viewing device's local time zone. See [installation](docs/installation.md) for remote hosts and [verification](docs/verification.md) for the scope of recorded testing.
 
-## Quick start
+## Install
 
-Install from npm on a daemon running Paseo 0.9 or newer:
+Paseo plugins are trusted, unsandboxed code with the daemon user's access to files, processes, credentials, and network. Account Switcher reads your Claude and Codex sign-ins to identify accounts and check their limits, and it sends no model messages. The commands below target the local daemon; for another host, see [remote daemons](docs/installation.md#remote-daemons).
 
-```sh
-paseo plugin install npm:paseo-plugin-account-switcher --host 127.0.0.1:6767
-```
-
-The npm package ships the generated launcher, so no build runs on the daemon.
-Paseo 0.8 has no npm sources; install from Git there with
-`paseo plugin install dutchakdev/paseo-plugin-account-switcher`, which downloads
-the source and runs the manifest's dependency and build steps.
-To review or develop the source first, use a local checkout:
-
-Download or clone this repository onto the **daemon's machine**, then run these commands from its directory:
+On Paseo 0.11.0 or a later 0.11 release, install the reviewed version from the plugin directory:
 
 ```sh
-npm ci --ignore-scripts --legacy-peer-deps
-npm run build
-npm run typecheck
-npm test
-paseo plugin install "$PWD" --host 127.0.0.1:6767
-paseo plugin ls account-switcher --host 127.0.0.1:6767
+paseo plugin add dutchakdev/account-switcher
 ```
 
-1. In Paseo, enable **Settings → Plugins → Enable plugins** if needed. Plugins are trusted, unsandboxed code with access to the daemon user's files, processes, credentials, and network.
-2. Confirm that `account-switcher` is **running**. Open **Accounts** in the sidebar, or **Accounts and limits** in the Command Center.
-3. Your existing **Current CLI · Claude** and **Current CLI · Codex** profiles appear automatically. They use the daemon's existing CLI authentication.
-4. Select **Enable** in Accounts to turn on account switching. This saves the original provider commands and installs the plugin's launchers.
+On Paseo 0.9 and 0.10, and on the 0.11.0 betas, install from npm. On 0.11, npm also gets a new version before the directory approves it:
 
-The example targets the local daemon at port `6767`. For a different daemon, follow the [host-specific installation steps](docs/installation.md#remote-daemons).
+```sh
+paseo plugin install npm:paseo-plugin-account-switcher
+```
+
+On Paseo 0.8, install from GitHub. Paseo then runs the manifest's dependency and build steps on the daemon:
+
+```sh
+paseo plugin install dutchakdev/paseo-plugin-account-switcher
+```
+
+To review or change the source first, install a [local checkout](docs/installation.md#install-a-local-checkout).
+
+## First run
+
+1. In Paseo, turn on **Settings → Plugins → Enable plugins**.
+2. Check that `paseo plugin ls account-switcher` shows **running**, then open **Accounts** in the sidebar or **Accounts and limits** in the Command Center.
+3. Accounts lists the sign-ins your daemon already uses as **Current CLI · Claude** and **Current CLI · Codex**. A provider without its CLI has no Current CLI entry.
+4. Select **Enable** in Accounts. This is separate from Paseo's plugin switch: the plugin saves your original Claude and Codex commands and points Paseo at its launchers. It leaves running chats alone, and **Disable** restores the original commands.
 
 ## Add an account
 
@@ -63,24 +66,26 @@ Select **Add**, choose a provider, name the account, and select **Add and sign i
 If clipboard access is unavailable, expand **Show sign-in link** and copy its selectable text.
 
 - **Claude:** finish on the provider's page. If it gives you an authorization code, paste the **complete code, including the part after `#`**, into **Authorization code** and select **Finish sign-in**.
-- **Codex — Device code:** enter the displayed code on the provider's page. This is the choice for a phone or another computer. **Copy code** copies it.
-- **Codex — Browser:** finish in a browser on the **daemon's computer**. The callback uses localhost. From another device, cancel and choose **Device code**.
+- **Codex, Device code:** enter the displayed code on the provider's page. Use it from a phone or another computer.
+- **Codex, In browser:** finish in a browser on the **daemon's computer**, because the callback uses localhost. From another device, cancel and choose **Device code**.
 
-The plugin verifies the identity and refreshes limits automatically. **Check sign-in** in the account's **⋯** menu provides a manual check. Enter passwords only on the provider's official page.
+After sign-in, the plugin verifies the account and refreshes its limits. To check again, use **Check sign-in** in the account's **⋯** menu. Enter passwords only on the provider's official page.
 
 Closing the dialog leaves **Continue sign-in** on the account. **Cancel sign-in** stops the process before releasing the profile. While sign-in is active, the account cannot be applied, made the default, or deleted. A failed start leaves the account available for **Retry sign-in** without creating a duplicate. Plugin reloads stop pending sign-ins; start again afterward.
 
 ### Manage accounts
 
-The **⋯** menu contains refresh, check sign-in, default, sign-in, rename, and delete actions. Account rows show identity, default status, and counts of current and pending agents.
+The **⋯** menu contains refresh, check sign-in, default, sign-in, rename, and remove actions. Account rows show identity, default status, and counts of current and pending agents.
 
-Before signing in again, switch agents away from that profile. To delete a managed account, clear its default and all current or pending selections first. Deletion requires confirmation. **Archived agents retain their account binding for resume**; restore and switch them before deleting the account. System profiles cannot be deleted.
+Before signing in again, switch agents away from that profile. To remove a managed account, clear its default and all current or pending selections first. Removal asks for confirmation. **Archived agents retain their account binding for resume**; restore and switch them before removing the account. **Current CLI** accounts cannot be removed.
 
 ## Switch an existing chat
 
 1. Select the account chip beside the message field to open **Account** over the current chat.
 2. Under **Switch to**, choose a verified account from the **same provider**. The existing account stays marked **current**; the selected account is **pending**.
 3. When the agent is idle and has no pending permission request, select **Apply “name”**.
+
+<img src="docs/assets/account-dialog.png" width="420" alt="The Account dialog for a Claude agent: limits of its current account and the accounts it can switch to.">
 
 You can select an account during a response, but it is **never applied automatically**. **Cancel selection** clears it. **All accounts** opens the full account list.
 
@@ -92,7 +97,7 @@ Different agents can use different accounts in parallel. Avoid sending from anot
 
 Each account shows all reported limit windows, including zero usage. Measured windows show used and remaining percentages and a reset countdown. Expand details for exact local reset times, durations, fetch/check timestamps, and windows without data.
 
-- Checks run every **5 minutes** in the background and every **60 seconds** while Accounts or the switcher is open.
+- Checks run every **5 minutes** in the background and every **minute** while Accounts or the switcher is open.
 - **Refresh** requests new data for one account; the header refresh action covers all accounts. Provider retry delays still apply.
 - Color thresholds are **80%**, **95%**, and **100%** used. Missing data stays **No data**, never an invented zero.
 - Failed requests can retain the last confirmed values as **stale**. Required sign-in, errors, and freshness remain visible.
@@ -102,17 +107,9 @@ Monitoring sends no model messages. The official CLIs own authentication and tok
 
 ## Update or remove
 
-For a directory installation, update its source and run:
+Plugin directory, npm, and Git installations update with `paseo plugin update account-switcher`, which shows the new revision and asks for approval.
 
-```sh
-npm ci --ignore-scripts --legacy-peer-deps
-npm run build
-npm run typecheck
-npm test
-paseo plugin reload account-switcher --host 127.0.0.1:6767
-```
-
-Before disabling or removing the plugin, select **Disable** in Accounts to restore the original provider commands. Removal does not delete the separately stored account data. See [update and removal](docs/installation.md#update) for complete steps, Git installations, and recovery.
+Before disabling or removing the plugin, select **Disable** in Accounts to restore the original provider commands. Removal does not delete the separately stored account data. See [update and removal](docs/installation.md#update) for a local checkout, the full steps, and recovery.
 
 ## Scope
 
