@@ -8,7 +8,7 @@ Account Switcher lets you use several Claude and ChatGPT/Codex subscription acco
 
 ## Setup
 
-- Paseo 0.8 to 0.11 on a macOS or Linux daemon, with Node.js 22.12 or newer.
+- Paseo 0.8 to 0.12 on a macOS or Linux daemon, with Node.js 22.12 or newer.
 - The official Paseo CLI and at least one of Claude Code or Codex on the daemon. A provider without its CLI shows as unavailable; after you install it, reload the plugin and select **Enable** in that provider's section.
 - A Claude or ChatGPT subscription for each account. API keys are not supported. Adding an account runs the official CLI sign-in from Paseo.
 
