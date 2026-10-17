@@ -55,6 +55,29 @@ The GitHub Actions workflow is configured for Node 22 on macOS and Linux.
 `actionlint` passed locally. A hosted Actions run remains separate from these
 local and SSH-based results.
 
+## Paseo 0.12 compatibility — 2026-10-17
+
+- The manifest accepts `^0.8.0 || 0.9.* || 0.10.* || 0.11.* || 0.12.*`; development
+  SDK dependencies remain pinned to 0.8.0.
+- Paseo **0.12.0-beta.1**'s own `assertPluginCompatibility` rejected the previous
+  range for 0.12.0-beta.1, 0.12.0, and 0.12.9, so 0.3.1 cannot load on 0.12. The new
+  range was accepted for 0.8.0, 0.9.2, 0.10.3, 0.11.0-beta.3, 0.11.4, 0.12.0-beta.1,
+  0.12.0, and 0.12.9, and rejected for 0.7.2, 0.13.0-beta.1, and 0.13.0. Checks
+  against future version numbers validate the range, not those runtimes.
+- The 0.12.0-beta.1 changelog lists only plugin fixes. Its plugin SDK declarations
+  are identical to 0.11.4; the client SDK adds an optional `background` field.
+- With the SDK swapped to **0.12.0-beta.1** in a scratch copy, typecheck passed and
+  **239/239 tests** passed. The build step is skipped there, because it refuses an
+  unreviewed bundled `@getpaseo/plugin` version by design. A test mock typed only
+  for the 0.8.0 SDK failed typecheck against 0.11.4 and 0.12; it now casts.
+- With the pinned 0.8.0 SDK, `npm run check` passed: launcher build, typecheck, and
+  **239/239 tests**.
+- An isolated **0.12.0-beta.1** daemon with an empty home directory installed the
+  plugin from source as `running` and logged `Plugin ready`, alongside Machine
+  Status, Mermaid, and Secure Input. A Claude Haiku agent created through that
+  daemon replied normally. Integration stayed disabled and no account was switched,
+  so this verifies loading, not switching or UI in a 0.12 client.
+
 ## Paseo 0.11 compatibility — 2026-10-05
 
 - The manifest accepts `^0.8.0 || 0.9.* || 0.10.* || 0.11.*`; development SDK

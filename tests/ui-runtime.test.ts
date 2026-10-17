@@ -50,7 +50,8 @@ describe("composer registration lifecycle", () => {
       if (options?.subscribe && "subscriptionId" in options.subscribe) {
         throw new Error("Subscription IDs are assigned by the host");
       }
-      return { ...page, requestId: "request", ...(options?.subscribe ? { subscription: { release } } : {}) };
+      // The mock subscription carries only `release`; newer SDK types describe the whole owned subscription.
+      return { ...page, requestId: "request", ...(options?.subscribe ? { subscription: { release } } : {}) } as unknown as typeof page;
     });
     const runtime = createClientRuntime(host.context, () => null);
     await flush();
