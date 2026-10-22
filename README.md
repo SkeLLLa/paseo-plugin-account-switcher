@@ -16,7 +16,7 @@ Listed in the [Paseo plugin directory](https://paseo.sh/plugins/dutchakdev/accou
 
 ## Requirements
 
-- **Paseo 0.8.x, 0.9.x, 0.10.x, 0.11.x, or 0.12.x**, including beta releases, on a **macOS or Linux** daemon and on the connected client.
+- **Paseo 0.8.x through 0.13.x**, including beta releases, on a **macOS or Linux** daemon and on the connected client.
 - **Node.js 22.12.0 or newer**, with npm.
 - The official **Paseo** CLI and at least one of **Claude Code** or **Codex** available to the daemon. A provider whose CLI is missing is skipped; after installing it, reload the plugin and select **Enable** in its section.
 - Claude or ChatGPT subscription authentication. API keys and custom authentication/provider overrides are unsupported.
@@ -27,13 +27,13 @@ The interface is in English. Reset dates use the viewing device's local time zon
 
 Paseo plugins are trusted, unsandboxed code with the daemon user's access to files, processes, credentials, and network. Account Switcher reads your Claude and Codex sign-ins to identify accounts and check their limits, and it sends no model messages. The commands below target the local daemon; for another host, see [remote daemons](docs/installation.md#remote-daemons).
 
-On Paseo 0.11.0 or a later release, including 0.12, install the reviewed version from the plugin directory:
+On Paseo 0.11.0 or a later release, including 0.12 and 0.13, install the reviewed version from the plugin directory:
 
 ```sh
 paseo plugin add dutchakdev/account-switcher
 ```
 
-On Paseo 0.9 and 0.10, and on the 0.11.0 betas, install from npm. On 0.11 and 0.12, npm also gets a new version before the directory approves it:
+On Paseo 0.9 and 0.10, and on the 0.11.0 betas, install from npm. On 0.11 and later, npm also gets a new version before the directory approves it:
 
 ```sh
 paseo plugin install npm:paseo-plugin-account-switcher
