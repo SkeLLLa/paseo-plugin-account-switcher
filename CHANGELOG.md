@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Supports Paseo 0.13, including its betas. The manifest range adds `0.13.*`; Paseo 0.13 rejected the previous range, so the plugin would not install or load there.
+
 ## 0.3.2 - 2026-10-17
 
 ### Changed

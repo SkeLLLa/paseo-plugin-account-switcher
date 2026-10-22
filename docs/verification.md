@@ -55,6 +55,33 @@ The GitHub Actions workflow is configured for Node 22 on macOS and Linux.
 `actionlint` passed locally. A hosted Actions run remains separate from these
 local and SSH-based results.
 
+## Paseo 0.13 compatibility — 2026-10-22
+
+- The manifest accepts `^0.8.0 || 0.9.* || 0.10.* || 0.11.* || 0.12.* || 0.13.*`;
+  development SDK dependencies remain pinned to 0.8.0.
+- Paseo **0.13.0-beta.1**'s own `assertPluginCompatibility` rejected the previous
+  range for 0.13.0-beta.1, 0.13.0, and 0.13.9, so 0.3.2 cannot load on 0.13. The new
+  range was accepted for 0.8.0, 0.10.3, 0.11.4, 0.12.0, 0.13.0-beta.1, 0.13.0, and
+  0.13.9, and rejected for 0.7.2, 0.14.0-beta.1, and 0.14.0. Checks against future
+  version numbers validate the range, not those runtimes.
+- 0.13 changes the plugin SDK. Two entries touch this plugin's surface:
+  `@getpaseo/plugin/client/react-native` is deprecated in favor of `client/ui`, and
+  `agent.turn_ended` events now carry an empty `timeline`. The deprecated entry is a
+  re-export of `client/ui` in the SDK, and the 0.13 app resolves both specifiers to
+  the same runtime, so the plugin keeps the old import: older apps have no `Icon`,
+  `Modal` or `TextInput` in `client/ui`. The plugin listens only to
+  `agent.created`, not to turn-ended events.
+- With the SDK swapped to **0.13.0-beta.1** in a scratch copy, typecheck passed
+  with no errors and **239/239 tests** passed. The build step is skipped there for
+  the reason recorded under 0.12.
+- With the pinned 0.8.0 SDK, `npm run check` passed: launcher build, typecheck, and
+  **239/239 tests**.
+- An isolated **0.13.0-beta.1** daemon with an empty home directory installed the
+  plugin from source as `running` and logged `Plugin ready`, alongside Machine
+  Status, Mermaid, and Secure Input. A Claude Haiku agent created through that
+  daemon replied normally. Integration stayed disabled and no account was switched,
+  so this verifies loading, not switching or UI in a 0.13 client.
+
 ## Paseo 0.12 compatibility — 2026-10-17
 
 - The manifest accepts `^0.8.0 || 0.9.* || 0.10.* || 0.11.* || 0.12.*`; development
