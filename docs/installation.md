@@ -32,7 +32,7 @@ On Paseo 0.9 and newer, including the 0.11.0 betas, install the published packag
 paseo plugin install npm:paseo-plugin-account-switcher --host 127.0.0.1:6767
 ```
 
-Paseo installs the package and its one runtime dependency without lifecycle scripts or development dependencies. The package already contains the generated launcher, and its manifest has no preparation steps, so nothing is built on the daemon host. `paseo plugin update account-switcher` moves to the newest published version.
+Paseo installs the package and its one runtime dependency, `@iarna/toml`, without lifecycle scripts or development dependencies. The package's `npm-shrinkwrap.json` fixes that dependency's exact version, source and integrity, so every host installs the same tree. The package already contains the generated launcher, and its manifest has no preparation steps, so nothing is built on the daemon host. `paseo plugin update account-switcher` moves to the newest published version.
 
 ## Git installations
 

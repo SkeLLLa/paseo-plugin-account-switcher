@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { publishedManifest } from "./pack-manifest.mjs";
+import { inspectShrinkwrap } from "./shrinkwrap.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 // The tarball is what npm, Paseo Cafe and the Paseo plugin directory install.
 const REQUIRED = [
-  "package.json", "paseo-plugin.json", "OVERVIEW.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+  "package.json", "npm-shrinkwrap.json", "paseo-plugin.json", "OVERVIEW.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
   "index.client.tsx", "index.server.ts", "server/launcher-artifact.ts", "shared/contracts.ts",
 ];
 const FORBIDDEN = ["tests/", "docs/", "scripts/", ".github/", ".local/", "node_modules/", "paseo-plugin.json.git"];
@@ -16,7 +17,7 @@ const FORBIDDEN = ["tests/", "docs/", "scripts/", ".github/", ".local/", "node_m
 const OVERVIEW_COMMANDS = /paseo plugin add|npm install|\bnpm i\b/;
 
 /** Problems with a packed tarball, given its file list and the files the registry reads. */
-export function inspectPackage({ files, manifest, overview, sourceManifest }) {
+export function inspectPackage({ files, manifest, overview, sourceManifest, packageJson, shrinkwrap }) {
   const problems = [];
   for (const file of REQUIRED) if (!files.includes(file)) problems.push(`missing ${file}`);
   for (const file of files) if (FORBIDDEN.some((prefix) => file.startsWith(prefix))) problems.push(`unexpected ${file}`);
@@ -24,6 +25,8 @@ export function inspectPackage({ files, manifest, overview, sourceManifest }) {
     problems.push("paseo-plugin.json differs from the source manifest without its build commands");
   }
   if (overview !== undefined && OVERVIEW_COMMANDS.test(overview)) problems.push("OVERVIEW.md contains an install command");
+  // Paseo installs npm plugins with npm, which honors only a published shrinkwrap.
+  if (packageJson) problems.push(...inspectShrinkwrap(shrinkwrap, packageJson));
   return problems;
 }
 
@@ -44,6 +47,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     manifest: JSON.parse(extract("paseo-plugin.json") ?? "null"),
     overview: extract("OVERVIEW.md"),
     sourceManifest: JSON.parse(readFileSync(join(root, "paseo-plugin.json"), "utf8")),
+    packageJson: JSON.parse(extract("package.json") ?? "null"),
+    shrinkwrap: JSON.parse(extract("npm-shrinkwrap.json") ?? "null"),
   });
   if (problems.length) {
     console.error(`${tarball}:\n${problems.map((problem) => `  ${problem}`).join("\n")}`);
