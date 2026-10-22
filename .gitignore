@@ -26,3 +26,6 @@ usage-cache.json
 
 # Backup of the Git manifest while npm pack runs.
 /paseo-plugin.json.git
+
+# Written by prepack from package-lock.json; it ships only in the npm tarball.
+/npm-shrinkwrap.json

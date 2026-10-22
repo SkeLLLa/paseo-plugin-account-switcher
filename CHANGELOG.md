@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The npm package ships `npm-shrinkwrap.json`, which fixes the exact version, source and integrity of its one runtime dependency, `@iarna/toml`. npm installs the same tree on every host, and the Paseo plugin directory can list the release.
+
 ## 0.3.3 - 2026-10-22
 
 ### Changed

@@ -9,7 +9,7 @@ import { publishedManifest } from "../scripts/pack-manifest.mjs";
 const read = (name: string) => readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), "utf8");
 const sourceManifest = JSON.parse(read("paseo-plugin.json"));
 const files = [
-  "package.json", "paseo-plugin.json", "OVERVIEW.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+  "package.json", "npm-shrinkwrap.json", "paseo-plugin.json", "OVERVIEW.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
   "index.client.tsx", "index.server.ts", "server/launcher-artifact.ts", "shared/contracts.ts", "client/runtime.ts",
 ];
 const inspect = (overrides: Record<string, unknown>) => inspectPackage({ files, manifest: publishedManifest(sourceManifest), overview: read("OVERVIEW.md"), sourceManifest, ...overrides });
